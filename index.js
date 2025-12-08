@@ -28,7 +28,7 @@ async function run() {
     
 
     const db = client.db("Book-Courier"); // DB name
-    const booksCollection = db.collection("Books"); // Collection name
+    const booksCollection = db.collection("Book"); // Collection name
    
     const { ObjectId } = require("mongodb");   // Get single book by id
 
