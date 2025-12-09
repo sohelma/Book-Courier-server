@@ -4,7 +4,7 @@ Book-courier-server
 
 This is the backend server for **Book Courier**, a courier service platform for fast and reliable book deliveries. Built with **Node.js**, **Express**, and **MongoDB**.
 
----
+
 
 ## Features
 
@@ -15,7 +15,7 @@ This is the backend server for **Book Courier**, a courier service platform for 
 - Coverage and service area endpoints
 - Real-time status updates
 
----
+
 
 ## Tech Stack
 
@@ -24,7 +24,6 @@ This is the backend server for **Book Courier**, a courier service platform for 
 - **Authentication:** Firebase Auth / JWT
 - **Other Tools:** dotenv, bcrypt, cors
 
----
 
 ## Getting Started
 
@@ -36,12 +35,7 @@ Make sure you have the following installed:
 - MongoDB (local or Atlas)
 - npm or yarn
 
----
+
 
 ### Installation
 
-1. Clone the repository:
-
-```bash
-git clone https://github.com/sohelma/Book-Courier-server.git
-cd Book-Courier-server

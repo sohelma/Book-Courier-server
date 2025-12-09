@@ -1,9 +1,8 @@
-//Book-courier-server/index.js
-
+//index.js (server)
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -11,7 +10,7 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-const uri = process.env.MONGODB_URI;
+const uri = process.env.MONGODB_URI; // আপনার .env এ URI
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -25,34 +24,62 @@ async function run() {
     await client.connect();
     console.log("✅ MongoDB connected successfully!");
 
-    
-
-    const db = client.db("Book-Courier"); // DB name
-    const booksCollection = db.collection("Book"); // Collection name
-   
-    const { ObjectId } = require("mongodb");   // Get single book by id
-
+    const db = client.db("Book-Courier");
+    const booksCollection = db.collection("Book");
+    const bannerCollection = db.collection("Banners");
 
     // Test route
     app.get("/", (req, res) => {
       res.send("Book Courier Server Running");
     });
 
+    // All books
     app.get("/books", async (req, res) => {
       const result = await booksCollection.find().toArray();
       res.send(result);
     });
 
-    app.get("/books/:id", async (req, res) => {
-      const id = req.params.id;
+     // ⭐ Latest 6 active books
+    app.get("/books/latest", async (req, res) => {
       try {
-        const book = await booksCollection.findOne({ _id: new ObjectId(id) });
-        res.send(book);
+        const latestBooks = await booksCollection
+          .find({ isActive: true })
+          .sort({ createdAt: -1 }) // সর্বশেষ যোগ হওয়া বই
+          .limit(4)
+          .toArray();
+
+        res.send(latestBooks);
       } catch (err) {
-        res.status(500).send({ message: "Book not found", error: err });
+        console.error("Error fetching latest books:", err);
+        res.status(500).send({ message: "Server Error" });
       }
     });
 
+    // Single book by ID
+    app.get("/books/:id", async (req, res) => {
+      const id = req.params.id;
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).send({ message: "Invalid Book ID" });
+      }
+      try {
+        const book = await booksCollection.findOne({ _id: new ObjectId(id) });
+        if (!book) return res.status(404).send({ message: "Book not found" });
+        res.send(book);
+      } catch (err) {
+        res.status(500).send({ message: "Server Error", error: err });
+      }
+    });
+
+   
+
+    // Banners API
+    app.get("/banners", async (req, res) => {
+      const banners = await bannerCollection
+        .find({ isActive: true })
+        .sort({ order: 1 })
+        .toArray();
+      res.send(banners);
+    });
 
   } catch (err) {
     console.error("❌ MongoDB connection failed:", err);
