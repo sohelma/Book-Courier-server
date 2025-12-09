@@ -44,7 +44,7 @@ async function run() {
       try {
         const latestBooks = await booksCollection
           .find({ isActive: true })
-          .sort({ createdAt: -1 }) // সর্বশেষ যোগ হওয়া বই
+          .sort({ createdAt: -1 }) 
           .limit(4)
           .toArray();
 
