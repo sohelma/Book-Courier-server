@@ -10,7 +10,7 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-const uri = process.env.MONGODB_URI; // আপনার .env এ URI
+const uri = process.env.MONGODB_URI; 
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
