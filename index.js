@@ -34,10 +34,17 @@ async function run() {
       res.send("Book Courier Server Running");
     });
 
-    // All books
+    // Get all books or filter by addedBy
     app.get("/books", async (req, res) => {
-      const result = await booksCollection.find().toArray();
-      res.send(result);
+      const { addedBy } = req.query;
+      const filter = addedBy ? { addedBy } : {};
+      try {
+        const books = await booksCollection.find(filter).toArray();
+        res.send(books);
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ message: "Server Error" });
+      }
     });
 
     // Latest active books
@@ -78,7 +85,7 @@ async function run() {
       res.send(banners);
     });
 
-    // Fetch orders by user email
+    // Orders
     app.get("/orders", async (req, res) => {
       const email = req.query.email;
       if (!email) return res.status(400).send({ message: "Email is required" });
@@ -95,7 +102,6 @@ async function run() {
       }
     });
 
-    // Fetch single order by ID
     app.get("/orders/:id", async (req, res) => {
       const id = req.params.id;
       if (!ObjectId.isValid(id)) return res.status(400).send({ message: "Invalid ID" });
@@ -105,7 +111,6 @@ async function run() {
       res.send(order);
     });
 
-    // Create new order
     app.post("/orders", async (req, res) => {
       const orderData = req.body;
       if (!orderData || !orderData.email || !orderData.bookId) {
@@ -121,7 +126,6 @@ async function run() {
       }
     });
 
-    // Cancel order
     app.patch("/orders/cancel/:id", async (req, res) => {
       const id = req.params.id;
       if (!ObjectId.isValid(id)) return res.status(400).send({ message: "Invalid ID" });
@@ -132,10 +136,7 @@ async function run() {
           { $set: { status: "cancelled" } }
         );
 
-        if (result.modifiedCount === 0) {
-          return res.status(404).send({ message: "Order not found" });
-        }
-
+        if (result.modifiedCount === 0) return res.status(404).send({ message: "Order not found" });
         res.send({ success: true, message: "Order cancelled" });
       } catch (err) {
         console.error(err);
@@ -143,27 +144,50 @@ async function run() {
       }
     });
 
-    // Pay order (single unified route)
-    app.patch("/orders/pay/:id", async (req, res) => {
-      const id = req.params.id;
-      if (!ObjectId.isValid(id)) return res.status(400).send({ message: "Invalid ID" });
+    // /orders/pay/:id using login email
+app.patch("/orders/pay/:id", async (req, res) => {
+  const id = req.params.id;
+  const { phone, address } = req.body; // client থেকে phone & address পাঠানো হবে
+  if (!ObjectId.isValid(id)) return res.status(400).send({ message: "Invalid ID" });
+
+  try {
+    const updateData = { paymentStatus: "paid", paidAt: new Date() };
+    if (phone) updateData.phone = phone;
+    if (address) updateData.address = address;
+
+    const result = await ordersCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateData }
+    );
+
+    if (result.modifiedCount === 0) return res.status(404).send({ message: "Order not found" });
+
+    res.send({ success: true, message: "Payment successful", updatedOrder: updateData });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ message: "Server Error", error: err });
+  }
+});
+
+
+
+    // Payments (only paid orders)
+    app.get("/payments", async (req, res) => {
+      const email = req.query.email;
+      if (!email) return res.status(400).send({ message: "Email is required" });
 
       try {
-        const result = await ordersCollection.updateOne(
-          { _id: new ObjectId(id) },
-          { $set: { paymentStatus: "paid", paidAt: new Date() } }
-        );
-
-        if (result.modifiedCount === 0) {
-          return res.status(404).send({ message: "Order not found" });
-        }
-
-        res.send({ success: true, message: "Payment successful" });
+        const payments = await ordersCollection
+          .find({ email, paymentStatus: "paid" })
+          .sort({ paidAt: -1 })
+          .toArray();
+        res.send(payments);
       } catch (err) {
         console.error(err);
-        res.status(500).send({ message: "Server Error", error: err });
+        res.status(500).send({ message: "Server Error" });
       }
     });
+    
 
   } catch (err) {
     console.error("❌ MongoDB connection failed:", err);

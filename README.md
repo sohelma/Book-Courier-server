@@ -24,8 +24,12 @@ This is the backend server for **Book Courier**, a courier service platform for 
 - **Authentication:** Firebase Auth / JWT
 - **Other Tools:** dotenv, bcrypt, cors
 
+### Database
+MONGODB Database: Book-Courier
+Collection: Book
+Collection: Banners
+Collection: Order
 
-## Getting Started
 
 ### Prerequisites
 
