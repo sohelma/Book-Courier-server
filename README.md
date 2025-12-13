@@ -1,45 +1,176 @@
-Book-courier-server
+BookCourier – Library to Home Delivery System
 
-# Book Courier Server
+Project Purpose
 
-This is the backend server for **Book Courier**, a courier service platform for fast and reliable book deliveries. Built with **Node.js**, **Express**, and **MongoDB**.
+BookCourier is a library-to-home book delivery system where users can browse books from nearby libraries, place orders, pay online, and track delivery status.
+This project is designed to demonstrate full-stack MERN skills, authentication, role-based dashboards, and modern UI/UX.
+
+Key Features
+👤 Authentication (Firebase)
+
+Email & Password Login
+
+Google Social Login
+
+Secure Private Routes
+
+Profile Update with Image Upload
+
+No email verification required
+
+🏠 User Features
+
+Browse all available books
+
+View book details
+
+Order books with modal form
+
+Payment system (status-based)
+
+Wishlist system
+
+Review & Rating (only ordered users)
+
+Order tracking (Pending → Shipped → Delivered)
+
+Profile update with image
+
+📊 Dashboard System
+
+User Dashboard
+
+My Orders
+
+Wishlist
+
+Payments / Invoices
+
+Profile
+
+Librarian Dashboard
+
+Add Book
+
+Manage Own Books
+
+Order Management
+
+Admin Dashboard
+
+Manage Users
+
+Manage All Books
+
+Delete Books (with cascading orders)
+
+🎨 UI / UX
+
+Fully Responsive (Mobile / Tablet / Desktop)
+
+Light & Dark Mode
+
+Skeleton Loader (No spinner)
+
+Modern 404 Page
+
+Animated sections
+
+Clean dashboard layout
+
+Charts & Graphs for quick data visualization
+
+🧠 Technology Stack
+🔹 Client Side
+
+React.js
+
+React Router DOM
+
+Tailwind CSS
+
+Axios
+
+Firebase Authentication
+
+React Hot Toast
+
+TanStack Query (optional)
+
+Chart.js / Recharts (Dashboard)
+
+🔹 Server Side
+
+Node.js
+
+Express.js
+
+MongoDB
+
+JWT Authentication
+
+CORS
+
+Dotenv
+
+🔹 Database
+
+MongoDB Atlas
+
+🔐 Security
+
+Firebase keys secured using environment variables
+
+MongoDB credentials secured using dotenv
+
+JWT token verification for protected API routes
+
+Domain whitelisted in Firebase for production
 
 
-
-## Features
-
-- User Authentication (Email/Password & Google)
-- Secure JWT-based authorization
-- CRUD operations for bookings and deliveries
-- Admin dashboard APIs
-- Coverage and service area endpoints
-- Real-time status updates
+Server .env
+PORT=3000
 
 
+📦 NPM Packages Used
+Client
 
-## Tech Stack
+react
 
-- **Backend:** Node.js, Express
-- **Database:** MongoDB (via Mongoose)
-- **Authentication:** Firebase Auth / JWT
-- **Other Tools:** dotenv, bcrypt, cors
+react-router-dom
 
-### Database
+axios
+
+firebase
+
+react-hot-toast
+
+chart.js / react-chartjs-2
+
+Server
+
+express
+
+mongodb
+
+cors
+
+dotenv
+
+jsonwebtoken
+
+🧪 Deployment
+
+Client deployed on Vercel / Netlify
+
+Server deployed on Render / Railway
+
+MongoDB Atlas Cloud Database
+
+
+Database
 MONGODB Database: Book-Courier
 Collection: Book
 Collection: Banners
 Collection: Order   
-
-
-### Prerequisites
-
-Make sure you have the following installed:
-
-- Node.js >= 18
-- MongoDB (local or Atlas)
-- npm or yarn
-
-
-
-### Installation
 
