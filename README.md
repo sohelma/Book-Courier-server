@@ -174,3 +174,42 @@ Collection: Book
 Collection: Banners
 Collection: Order   
 
+
+Flow chart
+server/
+│
+├── index.js                 ← main server entry
+│
+├── config/
+│   └── db.js                ← MongoDB connection (optional)
+│
+├── routes/
+│   ├── auth.routes.js
+│   ├── user.routes.js
+│   ├── book.routes.js
+│   ├── order.routes.js
+│   ├── wishlist.routes.js
+│   └── admin.routes.js
+│
+├── controllers/
+│   ├── auth.controller.js
+│   ├── user.controller.js
+│   ├── book.controller.js
+│   ├── order.controller.js
+│   ├── wishlist.controller.js
+│   └── admin.controller.js
+│
+├── middlewares/
+│   ├── verifyToken.js
+│   ├── verifyAdmin.js
+│   └── verifyLibrarian.js
+│
+├── models/
+│   ├── User.js
+│   ├── Book.js
+│   └── Order.js
+│
+├── utils/
+│   └── generateToken.js
+│
+└── .env

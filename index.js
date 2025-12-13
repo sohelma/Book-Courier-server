@@ -241,6 +241,98 @@ app.delete("/wishlist/:id", async (req, res) => {
   }
 });
 
+app.patch("/books/:id", async (req, res) => {
+  const id = req.params.id;
+  const { status } = req.body; // frontend থেকে status পাঠানো হচ্ছে
+
+  if (!ObjectId.isValid(id)) return res.status(400).send({ message: "Invalid Book ID" });
+
+  try {
+    const result = await booksCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { status } }
+    );
+
+    if (result.modifiedCount === 0) return res.status(404).send({ message: "Book not found" });
+
+    res.send({ success: true, message: `Book ${status}` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ message: "Server Error" });
+  }
+});
+
+
+app.patch("/books/:id", async (req, res) => {
+  const id = req.params.id;
+  const { title, description, imageUrl, price, isActive } = req.body;
+
+  if (!ObjectId.isValid(id)) 
+    return res.status(400).send({ message: "Invalid Book ID" });
+
+  try {
+    const result = await booksCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { title, description, imageUrl, price, isActive } }
+    );
+
+    if (result.matchedCount === 0)
+      return res.status(404).send({ message: "Book not found" });
+
+    res.send({ success: true, message: "Book updated successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ message: "Server error" });
+  }
+});
+
+
+app.patch("/orders/status/:id", async (req, res) => {
+  const id = req.params.id;
+  const { status } = req.body;
+  if (!ObjectId.isValid(id)) return res.status(400).send({ message: "Invalid order ID" });
+
+  try {
+    const result = await ordersCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { status } }
+    );
+    if (result.modifiedCount === 0) return res.status(404).send({ message: "Order not found" });
+
+    res.send({ success: true, message: "Order status updated" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ message: "Server error" });
+  }
+});
+
+
+// GET /librarian-orders?email=librarian@example.com
+app.get("/librarian-orders", async (req, res) => {
+  const email = req.query.email; // logged-in librarian email
+  if (!email) return res.status(400).send({ message: "Email required" });
+
+  try {
+    // librarian-এর বইগুলো বের করা
+    const books = await booksCollection.find({ addedBy: email }).toArray();
+    const bookIds = books.map(b => b._id.toString());
+
+    // সেই বই-এর অর্ডারগুলো filter করা
+    const orders = await ordersCollection.find({ bookId: { $in: bookIds } }).toArray();
+
+    // যদি কোনো অর্ডার না থাকে
+    if (!orders.length) return res.send({ message: "No orders found", orders: [] });
+
+    res.send(orders);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ message: "Server error" });
+  }
+});
+
+
+
+
 
   } catch (err) {
     console.error("❌ MongoDB connection failed:", err);
