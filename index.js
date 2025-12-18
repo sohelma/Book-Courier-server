@@ -1,4 +1,4 @@
-// index.js (final)
+// index.js 
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
@@ -195,11 +195,11 @@ async function run() {
   const { role } = req.body;
 
   let filter;
-  // যদি id ObjectId হয়
+  // if id ObjectId 
   if (ObjectId.isValid(id) && id.length === 24) {
     filter = { _id: new ObjectId(id) };
   } else {
-    // যদি string _id হয় (manual entries)
+    // if string _id (manual entries)
     filter = { _id: id };
   }
 
