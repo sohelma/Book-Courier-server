@@ -1,4 +1,4 @@
-// index.js (server)
+// index.js (final)
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
@@ -12,11 +12,7 @@ app.use(express.json());
 
 const uri = process.env.MONGODB_URI;
 const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
+  serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true },
 });
 
 async function run() {
@@ -28,49 +24,12 @@ async function run() {
     const booksCollection = db.collection("Book");
     const bannerCollection = db.collection("Banners");
     const ordersCollection = db.collection("Order");
-    const wishlistCollection = db.collection("Wishlist"); 
-    
+    const usersCollection = db.collection("Users");
+
     // Test route
-    app.get("/", (req, res) => {
-      res.send("Book Courier Server Running");
-    });
-
-
-    // Add Review/Rating
-app.post("/books/review/:id", async (req, res) => {
-  const bookId = req.params.id;
-  const { email, name, rating, comment } = req.body;
-
-  if (!ObjectId.isValid(bookId)) return res.status(400).send({ message: "Invalid Book ID" });
-  if (!email || !rating || !comment) return res.status(400).send({ message: "Missing required fields" });
-
-  try {
-    const review = {
-      _id: new ObjectId(),
-      email,
-      name: name || "Anonymous",
-      rating: Number(rating),
-      comment,
-      createdAt: new Date(),
-    };
-
-    const result = await booksCollection.updateOne(
-      { _id: new ObjectId(bookId) },
-      { $push: { review } }
-    );
-
-    if (result.modifiedCount === 0) return res.status(404).send({ message: "Book not found" });
-
-    res.send({ success: true, message: "Review added", review });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send({ message: "Server Error" });
-  }
-});
-
+    app.get("/", (req, res) => res.send("Book Courier Server Running"));
 
     // ---------------- BOOKS ----------------
-
     app.get("/books", async (req, res) => {
       const { addedBy } = req.query;
       const filter = addedBy ? { addedBy } : {};
@@ -89,248 +48,234 @@ app.post("/books/review/:id", async (req, res) => {
 
     app.get("/books/:id", async (req, res) => {
       const id = req.params.id;
-      if (!ObjectId.isValid(id)) {
-        return res.status(400).send({ message: "Invalid Book ID" });
-      }
-
+      if (!ObjectId.isValid(id)) return res.status(400).send({ message: "Invalid Book ID" });
       const book = await booksCollection.findOne({ _id: new ObjectId(id) });
       if (!book) return res.status(404).send({ message: "Book not found" });
-
       res.send(book);
     });
 
-    // ---------------- BANNERS ----------------
+    app.post("/books", async (req, res) => {
+  console.log("Book data received:", req.body); // check data
+  try {
+    const book = { ...req.body, status: "unpublished", createdAt: new Date() };
+    const result = await booksCollection.insertOne(book);
+    console.log("MongoDB insert result:", result);
+    res.send(result);
+  } catch (err) {
+    console.error("MongoDB insert failed:", err);
+    res.status(500).send({ message: "Insert failed", error: err.message });
+  }
+});
 
+
+    app.patch("/books/:id", async (req, res) => {
+      const id = req.params.id;
+      const { title, description, imageUrl, price, isActive, status } = req.body;
+      if (!ObjectId.isValid(id)) return res.status(400).send({ message: "Invalid Book ID" });
+
+      const result = await booksCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { title, description, imageUrl, price, isActive, status } }
+      );
+
+      if (result.matchedCount === 0) return res.status(404).send({ message: "Book not found" });
+      res.send({ success: true, message: "Book updated successfully" });
+    });
+
+    // ---------------- REVIEWS ----------------
+    app.post("/books/review/:id", async (req, res) => {
+      const bookId = req.params.id;
+      const { email, name, rating, comment } = req.body;
+      if (!ObjectId.isValid(bookId)) return res.status(400).send({ message: "Invalid Book ID" });
+      if (!email || !rating || !comment) return res.status(400).send({ message: "Missing required fields" });
+
+      const review = {
+        _id: new ObjectId(),
+        email,
+        name: name || "Anonymous",
+        rating: Number(rating),
+        comment,
+        createdAt: new Date(),
+      };
+
+      const result = await booksCollection.updateOne(
+        { _id: new ObjectId(bookId) },
+        { $push: { review } }
+      );
+
+      if (result.modifiedCount === 0) return res.status(404).send({ message: "Book not found" });
+      res.send({ success: true, message: "Review added", review });
+    });
+
+    // ---------------- BANNERS ----------------
     app.get("/banners", async (req, res) => {
-      const banners = await bannerCollection
-        .find({ isActive: true })
-        .sort({ order: 1 })
-        .toArray();
+      const banners = await bannerCollection.find({ isActive: true }).sort({ order: 1 }).toArray();
       res.send(banners);
     });
 
     // ---------------- ORDERS ----------------
-
     app.get("/orders", async (req, res) => {
       const email = req.query.email;
       if (!email) return res.status(400).send({ message: "Email required" });
-
-      const orders = await ordersCollection
-        .find({ email })
-        .sort({ createdAt: -1 })
-        .toArray();
+      const orders = await ordersCollection.find({ email }).sort({ createdAt: -1 }).toArray();
       res.send(orders);
     });
 
     app.post("/orders", async (req, res) => {
-      const orderData = req.body;
-      const result = await ordersCollection.insertOne(orderData);
+      const result = await ordersCollection.insertOne(req.body);
       res.send(result);
     });
 
     app.patch("/orders/cancel/:id", async (req, res) => {
       const id = req.params.id;
-      await ordersCollection.updateOne(
-        { _id: new ObjectId(id) },
-        { $set: { status: "cancelled" } }
-      );
+      await ordersCollection.updateOne({ _id: new ObjectId(id) }, { $set: { status: "cancelled" } });
       res.send({ success: true });
     });
 
     app.patch("/orders/pay/:id", async (req, res) => {
       const id = req.params.id;
       const { phone, address } = req.body;
-
       await ordersCollection.updateOne(
         { _id: new ObjectId(id) },
-        {
-          $set: {
-            paymentStatus: "paid",
-            paidAt: new Date(),
-            phone,
-            address,
-          },
-        }
+        { $set: { paymentStatus: "paid", paidAt: new Date(), phone, address } }
       );
-
       res.send({ success: true });
     });
 
     // ---------------- PAYMENTS ----------------
-
     app.get("/payments", async (req, res) => {
       const email = req.query.email;
       if (!email) return res.status(400).send({ message: "Email required" });
-
-      const payments = await ordersCollection
-        .find({ email, paymentStatus: "paid" })
-        .sort({ paidAt: -1 })
-        .toArray();
-
+      const payments = await ordersCollection.find({ email, paymentStatus: "paid" }).sort({ paidAt: -1 }).toArray();
       res.send(payments);
     });
 
-// ⭐ Wishlist Routes (reuse Order collection) with imageUrl
-app.get("/wishlist", async (req, res) => {
-  const email = req.query.email;
-  if (!email) return res.status(400).send({ message: "Email is required" });
+    // ---------------- WISHLIST ----------------
+    app.get("/wishlist", async (req, res) => {
+      const email = req.query.email;
+      if (!email) return res.status(400).send({ message: "Email is required" });
 
-  try {
-    const wishlistItems = await ordersCollection
-      .find({ email, type: "wishlist" })
-      .sort({ createdAt: -1 })
-      .toArray();
+      const wishlistItems = await ordersCollection.find({ email, type: "wishlist" }).sort({ createdAt: -1 }).toArray();
+      const bookIds = wishlistItems.map(item => new ObjectId(item.bookId));
+      const books = await booksCollection.find({ _id: { $in: bookIds } }).project({ imageUrl: 1 }).toArray();
 
-    // Book collection থেকে imageUrl যোগ করা
-    const bookIds = wishlistItems.map(item => new ObjectId(item.bookId));
-    const books = await booksCollection
-      .find({ _id: { $in: bookIds } })
-      .project({ imageUrl: 1 })
-      .toArray();
+      const wishlistWithImages = wishlistItems.map(item => {
+        const book = books.find(b => b._id.toString() === item.bookId);
+        return { ...item, imageUrl: book ? book.imageUrl : "https://via.placeholder.com/300" };
+      });
 
-    const wishlistWithImages = wishlistItems.map(item => {
-      const book = books.find(b => b._id.toString() === item.bookId);
-      return {
-        ...item,
-        imageUrl: book ? book.imageUrl : "https://via.placeholder.com/300",
-      };
+      res.send(wishlistWithImages);
     });
 
-    res.send(wishlistWithImages);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send({ message: "Server Error" });
-  }
-});
+    app.post("/wishlist", async (req, res) => {
+      const { bookId, email, bookTitle } = req.body;
+      if (!bookId || !email) return res.status(400).send({ message: "Book ID and Email required" });
 
+      const existing = await ordersCollection.findOne({ bookId, email, type: "wishlist" });
+      if (existing) return res.status(400).send({ message: "Already in Wishlist" });
 
-app.post("/wishlist", async (req, res) => {
-  const { bookId, email, bookTitle } = req.body;
-  if (!bookId || !email) return res.status(400).send({ message: "Book ID and Email required" });
-
-  try {
-    // Check if already in wishlist
-    const existing = await ordersCollection.findOne({ bookId, email, type: "wishlist" });
-    if (existing) return res.status(400).send({ message: "Already in Wishlist" });
-
-    const result = await ordersCollection.insertOne({
-      bookId,
-      bookTitle: bookTitle || "",
-      email,
-      type: "wishlist",
-      createdAt: new Date(),
+      const result = await ordersCollection.insertOne({ bookId, bookTitle: bookTitle || "", email, type: "wishlist", createdAt: new Date() });
+      res.send({ success: true, message: "Added to Wishlist", id: result.insertedId });
     });
-    res.send({ success: true, message: "Added to Wishlist", id: result.insertedId });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send({ message: "Server Error" });
+
+    app.delete("/wishlist/:id", async (req, res) => {
+      const id = req.params.id;
+      if (!ObjectId.isValid(id)) return res.status(400).send({ message: "Invalid ID" });
+
+      const result = await ordersCollection.deleteOne({ _id: new ObjectId(id), type: "wishlist" });
+      if (result.deletedCount === 0) return res.status(404).send({ message: "Wishlist item not found" });
+      res.send({ success: true, message: "Removed from Wishlist" });
+    });
+
+    // ---------------- USERS ----------------
+    app.get("/users", async (req, res) => res.send(await usersCollection.find().toArray()));
+
+    app.patch("/users/role/:id", async (req, res) => {
+  const id = req.params.id;
+  const { role } = req.body;
+
+  let filter;
+  // যদি id ObjectId হয়
+  if (ObjectId.isValid(id) && id.length === 24) {
+    filter = { _id: new ObjectId(id) };
+  } else {
+    // যদি string _id হয় (manual entries)
+    filter = { _id: id };
   }
+
+  const result = await usersCollection.updateOne(filter, { $set: { role } });
+  if (result.matchedCount === 0) return res.status(404).send({ message: "User not found" });
+
+  res.send({ success: true, message: "User role updated", result });
 });
 
-app.delete("/wishlist/:id", async (req, res) => {
+
+    // ---------------- LIBRARIAN ORDERS ----------------
+    app.get("/librarian-orders", async (req, res) => {
+      const email = req.query.email;
+      if (!email) return res.status(400).send({ message: "Email required" });
+
+      const books = await booksCollection.find({ addedBy: email }).toArray();
+      const bookIds = books.map(b => b._id.toString());
+      const orders = await ordersCollection.find({ bookId: { $in: bookIds } }).toArray();
+
+      res.send(orders.length ? orders : { message: "No orders found", orders: [] });
+    });
+
+
+    // ---------------- ADMIN BOOKS ---------------------
+
+    app.get("/admin/books", async (req, res) => {
+      try {
+        const books = await booksCollection.find().toArray();
+        res.send(books);
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ message: "Failed to fetch books", error: err.message });
+      }
+    });
+
+
+    app.delete("/admin/books/:id", async (req, res) => {
   const id = req.params.id;
-  if (!ObjectId.isValid(id)) return res.status(400).send({ message: "Invalid ID" });
-
-  try {
-    const result = await ordersCollection.deleteOne({ _id: new ObjectId(id), type: "wishlist" });
-    if (result.deletedCount === 0) return res.status(404).send({ message: "Wishlist item not found" });
-    res.send({ success: true, message: "Removed from Wishlist" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send({ message: "Server Error" });
-  }
-});
-
-app.patch("/books/:id", async (req, res) => {
-  const id = req.params.id;
-  const { status } = req.body; // frontend থেকে status পাঠানো হচ্ছে
-
   if (!ObjectId.isValid(id)) return res.status(400).send({ message: "Invalid Book ID" });
 
   try {
-    const result = await booksCollection.updateOne(
-      { _id: new ObjectId(id) },
-      { $set: { status } }
-    );
+    // 1. Delete the book
+    const result = await booksCollection.deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 0) return res.status(404).send({ message: "Book not found" });
 
-    if (result.modifiedCount === 0) return res.status(404).send({ message: "Book not found" });
+    // 2. Delete related orders
+    await ordersCollection.deleteMany({ bookId: id });
 
-    res.send({ success: true, message: `Book ${status}` });
+    res.send({ success: true, message: "Book and related orders deleted" });
   } catch (err) {
     console.error(err);
-    res.status(500).send({ message: "Server Error" });
+    res.status(500).send({ message: "Failed to delete book", error: err.message });
   }
 });
 
 
-app.patch("/books/:id", async (req, res) => {
-  const id = req.params.id;
-  const { title, description, imageUrl, price, isActive } = req.body;
-
-  if (!ObjectId.isValid(id)) 
-    return res.status(400).send({ message: "Invalid Book ID" });
-
-  try {
-    const result = await booksCollection.updateOne(
-      { _id: new ObjectId(id) },
-      { $set: { title, description, imageUrl, price, isActive } }
-    );
-
-    if (result.matchedCount === 0)
-      return res.status(404).send({ message: "Book not found" });
-
-    res.send({ success: true, message: "Book updated successfully" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send({ message: "Server error" });
-  }
-});
-
-
+  // UPDATE ORDER STATUS (pending -> shipped -> delivered)
 app.patch("/orders/status/:id", async (req, res) => {
   const id = req.params.id;
   const { status } = req.body;
-  if (!ObjectId.isValid(id)) return res.status(400).send({ message: "Invalid order ID" });
 
-  try {
-    const result = await ordersCollection.updateOne(
-      { _id: new ObjectId(id) },
-      { $set: { status } }
-    );
-    if (result.modifiedCount === 0) return res.status(404).send({ message: "Order not found" });
-
-    res.send({ success: true, message: "Order status updated" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send({ message: "Server error" });
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).send({ message: "Invalid Order ID" });
   }
-});
 
+  const result = await ordersCollection.updateOne(
+    { _id: new ObjectId(id) },
+    { $set: { status } }
+  );
 
-// GET /librarian-orders?email=librarian@example.com
-app.get("/librarian-orders", async (req, res) => {
-  const email = req.query.email; // logged-in librarian email
-  if (!email) return res.status(400).send({ message: "Email required" });
-
-  try {
-    // librarian-এর বইগুলো বের করা
-    const books = await booksCollection.find({ addedBy: email }).toArray();
-    const bookIds = books.map(b => b._id.toString());
-
-    // সেই বই-এর অর্ডারগুলো filter করা
-    const orders = await ordersCollection.find({ bookId: { $in: bookIds } }).toArray();
-
-    // যদি কোনো অর্ডার না থাকে
-    if (!orders.length) return res.send({ message: "No orders found", orders: [] });
-
-    res.send(orders);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send({ message: "Server error" });
+  if (result.matchedCount === 0) {
+    return res.status(404).send({ message: "Order not found" });
   }
+
+  res.send({ success: true, message: "Order status updated" });
 });
-
-
 
 
 
@@ -341,6 +286,4 @@ app.get("/librarian-orders", async (req, res) => {
 
 run();
 
-app.listen(port, () => {
-  console.log(` Server running on port ${port}`);
-});
+app.listen(port, () => console.log(`Server running on port ${port}`));
